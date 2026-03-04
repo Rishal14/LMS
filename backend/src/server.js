@@ -8,6 +8,7 @@ const subjectRoutes = require('./routes/subjectRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
 const quizRoutes = require('./routes/quizRoutes');
 const resultRoutes = require('./routes/resultRoutes');
+const flagRoutes = require('./routes/flagRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
 
@@ -53,6 +54,7 @@ app.use('/api/subjects', subjectRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/quizzes', quizRoutes);
 app.use('/api/results', resultRoutes);
+app.use('/api/flags', flagRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
