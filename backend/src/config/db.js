@@ -10,6 +10,7 @@ if (!process.env.DATABASE_URL) {
 } else {
   sequelize = new Sequelize(process.env.DATABASE_URL, {
     dialect: 'postgres',
+    dialectModule: require('pg'), // CRITICAL FIX for Vercel/Serverless
     dialectOptions: {
       ssl: {
         require: true,
