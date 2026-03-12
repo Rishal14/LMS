@@ -16,8 +16,9 @@ const connectDB = async () => {
     await sequelize.authenticate();
     console.log('PostgreSQL Connected (Neon)');
   } catch (error) {
-    console.error(`Error: ${error.message}`);
-    process.exit(1);
+    console.error(`Database Connection Error: ${error.message}`);
+    // Do not process.exit(1) in serverless environments as it causes 500 errors
+    throw error;
   }
 };
 

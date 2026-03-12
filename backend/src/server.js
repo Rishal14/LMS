@@ -66,11 +66,23 @@ app.use('/api/upload', uploadRoutes);
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
-    await connectDB();
-    await sequelize.sync({ alter: true }); // Updates schema to match changes
-    console.log('All tables synced');
+    try {
+        await connectDB();
 
-    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+        // Sync database only in development or if a forced sync flag is set
+        // In production Vercel, frequent syncing can lead to timeouts
+        if (process.env.NODE_ENV !== 'production' || process.env.FORCE_SYNC === 'true') {
+            await sequelize.sync({ alter: true });
+            console.log('All tables synced');
+        }
+    } catch (err) {
+        console.error('Failed to start server:', err.message);
+    }
+
+    // Only listen on a port if not running as a Vercel Serverless Function
+    if (!process.env.VERCEL) {
+        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+    }
 };
 
 startServer();
