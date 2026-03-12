@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import api from '../../services/api';
-import { ArrowLeft, Save, Plus, Trash2, Video, FileText, BookOpen, FileQuestion, CheckCircle2, Pencil, X } from 'lucide-react';
+import { ArrowLeft, Save, Plus, Trash2, Video, FileText, BookOpen, FileQuestion, CheckCircle2, Pencil, X, Upload } from 'lucide-react';
 
 const SubjectEditor = () => {
     const { id } = useParams();
@@ -86,7 +86,8 @@ const SubjectEditor = () => {
             alert('Subject curriculum saved successfully!');
         } catch (error) {
             console.error('Error saving subject', error);
-            alert('Failed to save changes.');
+            const errMsg = error.response?.data?.message || error.message || 'Unknown network error';
+            alert(`Failed to save changes: ${errMsg}`);
         } finally {
             setSaving(false);
         }
@@ -136,6 +137,28 @@ const SubjectEditor = () => {
         const newUnits = [...subject.units];
         newUnits[unitIndex].chapters[chapterIndex].sections[sectionIndex].paragraphs.splice(paraIndex, 1);
         setSubject({ ...subject, units: newUnits });
+    };
+
+    const uploadPdf = async (unitIndex, chapterIndex, sectionIndex, file) => {
+        if (!file) return;
+        if (file.type !== 'application/pdf') {
+            return alert('Only PDF files are allowed.');
+        }
+
+        const formData = new FormData();
+        formData.append('document', file);
+
+        try {
+            const { data } = await api.post('/upload', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' }
+            });
+            const newUnits = [...subject.units];
+            newUnits[unitIndex].chapters[chapterIndex].sections[sectionIndex].paragraphs.push(`[PDF] ${data.url}`);
+            setSubject({ ...subject, units: newUnits });
+        } catch (error) {
+            console.error('Error uploading file', error);
+            alert('Failed to upload PDF: ' + (error.response?.data?.message || error.message));
+        }
     };
 
     // ─── QUIZ HANDLERS ──────────────────────────
@@ -238,21 +261,19 @@ const SubjectEditor = () => {
             <div className="flex gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
                 <button
                     onClick={() => setActiveTab('curriculum')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-200 ${
-                        activeTab === 'curriculum'
-                            ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25'
-                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab === 'curriculum'
+                        ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-lg shadow-indigo-500/25'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                        }`}
                 >
                     <BookOpen size={18} /> Curriculum ({subject.units?.length || 0} Units)
                 </button>
                 <button
                     onClick={() => setActiveTab('quizzes')}
-                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-200 ${
-                        activeTab === 'quizzes'
-                            ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
-                            : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-                    }`}
+                    className={`flex-1 flex items-center justify-center gap-2 py-3 px-6 rounded-xl text-sm font-bold transition-all duration-200 ${activeTab === 'quizzes'
+                        ? 'bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/25'
+                        : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+                        }`}
                 >
                     <FileQuestion size={18} /> Quizzes ({quizzes.length})
                 </button>
@@ -308,10 +329,18 @@ const SubjectEditor = () => {
                                                                         </button>
                                                                     </div>
                                                                 ))}
-                                                                <button onClick={() => addParagraph(uIdx, cIdx, sIdx)}
-                                                                    className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium flex items-center gap-1">
-                                                                    <Plus size={14} /> Add Paragraph
-                                                                </button>
+                                                                <div className="flex items-center gap-4">
+                                                                    <button onClick={() => addParagraph(uIdx, cIdx, sIdx)}
+                                                                        className="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-700 font-medium flex items-center gap-1">
+                                                                        <Plus size={14} /> Add Paragraph
+                                                                    </button>
+
+                                                                    <label className="text-sm text-indigo-500 hover:text-indigo-600 font-medium flex items-center gap-1 cursor-pointer">
+                                                                        <Upload size={14} /> Upload PDF
+                                                                        <input type="file" accept=".pdf" className="hidden"
+                                                                            onChange={(e) => uploadPdf(uIdx, cIdx, sIdx, e.target.files[0])} />
+                                                                    </label>
+                                                                </div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -346,9 +375,8 @@ const SubjectEditor = () => {
                         <div className="space-y-3">
                             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400">Existing Quizzes</h3>
                             {quizzes.map((quiz, qIdx) => (
-                                <div key={quiz._id || qIdx} className={`flex items-center justify-between p-5 bg-white dark:bg-slate-800 rounded-2xl border shadow-sm transition-all ${
-                                    editingQuizId === (quiz._id || quiz.id) ? 'border-indigo-400 ring-2 ring-indigo-200' : 'border-slate-100 dark:border-slate-700'
-                                }`}>
+                                <div key={quiz._id || qIdx} className={`flex items-center justify-between p-5 bg-white dark:bg-slate-800 rounded-2xl border shadow-sm transition-all ${editingQuizId === (quiz._id || quiz.id) ? 'border-indigo-400 ring-2 ring-indigo-200' : 'border-slate-100 dark:border-slate-700'
+                                    }`}>
                                     <div className="flex items-center gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-emerald-500/20">
                                             Q{qIdx + 1}
@@ -421,11 +449,10 @@ const SubjectEditor = () => {
 
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {q.options.map((opt, oIdx) => (
-                                        <div key={oIdx} className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
-                                            q.correctOptionIndex === oIdx
-                                                ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
-                                                : 'border-slate-200 dark:border-slate-700'
-                                        }`}>
+                                        <div key={oIdx} className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${q.correctOptionIndex === oIdx
+                                            ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                                            : 'border-slate-200 dark:border-slate-700'
+                                            }`}>
                                             <input type="radio" name={`correct-${qIdx}`} checked={q.correctOptionIndex === oIdx}
                                                 onChange={() => updateQuestion(qIdx, 'correctOptionIndex', oIdx)}
                                                 className="accent-emerald-500 w-4 h-4" />
@@ -443,11 +470,10 @@ const SubjectEditor = () => {
                         ))}
 
                         <button type="submit" disabled={submittingQuiz}
-                            className={`w-full py-4 text-white font-black text-sm rounded-2xl shadow-xl transition-all disabled:opacity-50 ${
-                                editingQuizId
-                                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-500/25'
-                                    : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/25'
-                            }`}>
+                            className={`w-full py-4 text-white font-black text-sm rounded-2xl shadow-xl transition-all disabled:opacity-50 ${editingQuizId
+                                ? 'bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 shadow-indigo-500/25'
+                                : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 shadow-emerald-500/25'
+                                }`}>
                             {submittingQuiz ? 'Saving...' : editingQuizId ? '✏️ Update Quiz' : '🎯 Create Quiz'}
                         </button>
                     </form>

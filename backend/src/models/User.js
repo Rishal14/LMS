@@ -31,6 +31,14 @@ const User = sequelize.define('User', {
     status: {
         type: DataTypes.ENUM('ACTIVE', 'INACTIVE'),
         defaultValue: 'ACTIVE'
+    },
+    isVerified: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    },
+    verificationCode: {
+        type: DataTypes.STRING,
+        allowNull: true
     }
 }, {
     tableName: 'users',

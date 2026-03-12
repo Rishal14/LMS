@@ -4,6 +4,7 @@ import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import { Plus, Edit2, Trash2, Trophy, X, BookOpen, Users, FileQuestion } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import ProfileSection from './ProfileSection';
 
 const SUBJECT_IMAGES = [
     'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?w=800&q=80', // code / DSA
@@ -35,11 +36,17 @@ const InstructorDash = ({ currentView = 'dashboard' }) => {
     const fetchAll = async () => {
         try {
             const { data: subs } = await api.get('/subjects');
-            setSubjects(subs);
+            // Ensure we only show subjects belonging to the currently logged in instructor
+            const mySubs = subs.filter(s => {
+                const instrId = s.instructorId?._id || s.instructorId?.id || s.instructorId;
+                return String(instrId) === String(user.id || user._id);
+            });
+
+            setSubjects(mySubs);
 
             // Fetch quizzes and rankings for each subject in parallel
             const qMap = {}, rMap = {};
-            await Promise.all(subs.map(async (s) => {
+            await Promise.all(mySubs.map(async (s) => {
                 try {
                     const [qRes, rRes] = await Promise.all([
                         api.get(`/quizzes/subject/${s._id}`),
@@ -94,7 +101,7 @@ const InstructorDash = ({ currentView = 'dashboard' }) => {
     );
 
     // ─── CREATE MODAL ────────────────────────────────────────────────────────────
-    const CreateModal = () => (
+    const createModalContent = (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden animate-fade-in-up border border-slate-100">
                 <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center">
@@ -147,7 +154,7 @@ const InstructorDash = ({ currentView = 'dashboard' }) => {
                     <img src="https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=1400&q=80" alt="Instructor Hero" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/85 via-slate-900/50 to-transparent flex items-center px-12">
                         <div>
-                            <p className="text-xs font-black uppercase tracking-widest text-indigo-300 mb-2">Instructor Dashboard</p>
+                            <p className="text-xs font-black uppercase tracking-widest text-indigo-300 mb-2">Instructor ID: {user?.userId}</p>
                             <h1 className="text-4xl font-black text-white leading-tight">Welcome back,<br /><span className="text-indigo-300">{user?.name} 👨‍🏫</span></h1>
                         </div>
                     </div>
@@ -190,7 +197,7 @@ const InstructorDash = ({ currentView = 'dashboard' }) => {
                     </div>
                 )}
 
-                {showCreateModal && <CreateModal />}
+                {showCreateModal && createModalContent}
             </div>
         );
     }
@@ -263,7 +270,7 @@ const InstructorDash = ({ currentView = 'dashboard' }) => {
                         })}
                     </div>
                 )}
-                {showCreateModal && <CreateModal />}
+                {showCreateModal && createModalContent}
             </div>
         );
     }
@@ -347,6 +354,11 @@ const InstructorDash = ({ currentView = 'dashboard' }) => {
                 )}
             </div>
         );
+    }
+
+    // ─── VIEW: PROFILE ──────────────────────────────────────────────────────────
+    if (currentView === 'profile') {
+        return <ProfileSection />;
     }
 
     // ─── VIEW: ANALYTICS ─────────────────────────────────────────────────────────

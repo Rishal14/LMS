@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import api from '../services/api';
+import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 
 const COLLAGE = [
@@ -17,7 +17,13 @@ const Signup = () => {
     const [showPw, setShowPw] = useState(false);
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    // Step 2 Verification state
+    const [step, setStep] = useState(1);
+    const [verificationCode, setVerificationCode] = useState('');
+
     const navigate = useNavigate();
+    const { register, verifyEmail } = useAuth();
 
     const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
 
@@ -26,22 +32,32 @@ const Signup = () => {
         setError('');
         if (form.password !== form.confirm) { setError('Passwords do not match.'); return; }
         const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
-        if (!passwordRegex.test(form.password)) { 
-            setError('Password must be at least 8 chars with uppercase, lowercase, number, and special character.'); 
-            return; 
+        if (!passwordRegex.test(form.password)) {
+            setError('Password must be at least 8 chars with uppercase, lowercase, number, and special character.');
+            return;
         }
         setIsLoading(true);
-        try {
-            await api.post('/auth/register', {
-                name: form.name, email: form.email,
-                password: form.password, role: form.role
-            });
-            navigate('/login');
-        } catch (err) {
-            setError(err.response?.data?.message || 'Registration failed. Please try again.');
-        } finally {
-            setIsLoading(false);
+        const result = await register(form.name, form.email, form.password, form.role);
+        if (result.success) {
+            setStep(2);
+        } else {
+            setError(result.message);
         }
+        setIsLoading(false);
+    };
+
+    const handleVerify = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+
+        const result = await verifyEmail(form.email, verificationCode);
+        if (result.success) {
+            navigate('/dashboard');
+        } else {
+            setError(result.message);
+        }
+        setIsLoading(false);
     };
 
     return (
@@ -119,92 +135,136 @@ const Signup = () => {
                         </div>
                     )}
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
+                    {step === 1 ? (
+                        <form onSubmit={handleSubmit} className="space-y-4">
 
-                        {/* Role Selector */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>I am a</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                {[
-                                    { value: 'STUDENT', label: '🎓 Student', desc: 'Enroll in courses & take quizzes' },
-                                    { value: 'INSTRUCTOR', label: '👨‍🏫 Instructor', desc: 'Create & manage subjects' },
-                                ].map(r => (
-                                    <button key={r.value} type="button"
-                                        onClick={() => setForm(f => ({ ...f, role: r.value }))}
-                                        className="px-4 py-4 rounded-2xl border text-left transition-all"
-                                        style={{
-                                            background: form.role === r.value ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
-                                            borderColor: form.role === r.value ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.08)',
-                                        }}>
-                                        <p className="text-sm font-black text-white">{r.label}</p>
-                                        <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{r.desc}</p>
-                                        {form.role === r.value && <CheckCircle2 size={14} className="mt-2 text-indigo-400" />}
-                                    </button>
-                                ))}
+                            {/* Role Selector */}
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-widest mb-3" style={{ color: 'rgba(255,255,255,0.35)' }}>I am a</label>
+                                <div className="grid grid-cols-2 gap-3">
+                                    {[
+                                        { value: 'STUDENT', label: '🎓 Student', desc: 'Enroll in courses & take quizzes' },
+                                        { value: 'INSTRUCTOR', label: '👨‍🏫 Instructor', desc: 'Create & manage subjects' },
+                                    ].map(r => (
+                                        <button key={r.value} type="button"
+                                            onClick={() => setForm(f => ({ ...f, role: r.value }))}
+                                            className="px-4 py-4 rounded-2xl border text-left transition-all"
+                                            style={{
+                                                background: form.role === r.value ? 'rgba(99,102,241,0.15)' : 'rgba(255,255,255,0.03)',
+                                                borderColor: form.role === r.value ? 'rgba(99,102,241,0.6)' : 'rgba(255,255,255,0.08)',
+                                            }}>
+                                            <p className="text-sm font-black text-white">{r.label}</p>
+                                            <p className="text-xs mt-1" style={{ color: 'rgba(255,255,255,0.35)' }}>{r.desc}</p>
+                                            {form.role === r.value && <CheckCircle2 size={14} className="mt-2 text-indigo-400" />}
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
 
-                        {/* Full Name */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Full Name</label>
-                            <input type="text" required value={form.name} onChange={update('name')} placeholder="Your full name"
-                                className="w-full px-5 py-4 rounded-2xl text-white font-medium outline-none transition-all"
-                                style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', fontSize: '15px' }}
-                                onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
-                                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-                            />
-                        </div>
-
-                        {/* Email */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Email Address</label>
-                            <input type="email" required value={form.email} onChange={update('email')} placeholder="you@example.com"
-                                className="w-full px-5 py-4 rounded-2xl text-white font-medium outline-none transition-all"
-                                style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', fontSize: '15px' }}
-                                onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
-                                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-                            />
-                        </div>
-
-                        {/* Password */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Password</label>
-                            <div className="relative">
-                                <input type={showPw ? 'text' : 'password'} required value={form.password} onChange={update('password')} placeholder="Min. 8 chars, mixed case, special char"
-                                    className="w-full px-5 py-4 pr-14 rounded-2xl text-white font-medium outline-none transition-all"
+                            {/* Full Name */}
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Full Name</label>
+                                <input type="text" required value={form.name} onChange={update('name')} placeholder="Your full name"
+                                    className="w-full px-5 py-4 rounded-2xl text-white font-medium outline-none transition-all"
                                     style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', fontSize: '15px' }}
                                     onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
                                     onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
                                 />
-                                <button type="button" onClick={() => setShowPw(!showPw)}
-                                    className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'rgba(255,255,255,0.3)' }}>
-                                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
-                                </button>
                             </div>
-                        </div>
 
-                        {/* Confirm Password */}
-                        <div>
-                            <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Confirm Password</label>
-                            <input type="password" required value={form.confirm} onChange={update('confirm')} placeholder="Re-enter password"
-                                className="w-full px-5 py-4 rounded-2xl text-white font-medium outline-none transition-all"
-                                style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', fontSize: '15px' }}
-                                onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
-                                onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
-                            />
-                        </div>
+                            {/* Email */}
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Email Address</label>
+                                <input type="email" required value={form.email} onChange={update('email')} placeholder="you@example.com"
+                                    className="w-full px-5 py-4 rounded-2xl text-white font-medium outline-none transition-all"
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', fontSize: '15px' }}
+                                    onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
+                                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                                />
+                            </div>
 
-                        <button type="submit" disabled={isLoading}
-                            className="w-full py-4 rounded-2xl font-black text-base text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 mt-2"
-                            style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', boxShadow: '0 20px 40px -10px rgba(99,102,241,0.5)' }}>
-                            {isLoading
-                                ? <span className="flex items-center justify-center gap-3">
-                                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                                    Creating account...
-                                  </span>
-                                : 'Create Account →'}
-                        </button>
-                    </form>
+                            {/* Password */}
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Password</label>
+                                <div className="relative">
+                                    <input type={showPw ? 'text' : 'password'} required value={form.password} onChange={update('password')} placeholder="Min. 8 chars, mixed case, special char"
+                                        className="w-full px-5 py-4 pr-14 rounded-2xl text-white font-medium outline-none transition-all"
+                                        style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', fontSize: '15px' }}
+                                        onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
+                                        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                                    />
+                                    <button type="button" onClick={() => setShowPw(!showPw)}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 transition-colors" style={{ color: 'rgba(255,255,255,0.3)' }}>
+                                        {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div>
+                                <label className="block text-xs font-black uppercase tracking-widest mb-2" style={{ color: 'rgba(255,255,255,0.35)' }}>Confirm Password</label>
+                                <input type="password" required value={form.confirm} onChange={update('confirm')} placeholder="Re-enter password"
+                                    className="w-full px-5 py-4 rounded-2xl text-white font-medium outline-none transition-all"
+                                    style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', fontSize: '15px' }}
+                                    onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
+                                    onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                                />
+                            </div>
+
+                            <button type="submit" disabled={isLoading}
+                                className="w-full py-4 rounded-2xl font-black text-base text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60 mt-2"
+                                style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', boxShadow: '0 20px 40px -10px rgba(99,102,241,0.5)' }}>
+                                {isLoading
+                                    ? <span className="flex items-center justify-center gap-3">
+                                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                        Creating account...
+                                    </span>
+                                    : 'Create Account →'}
+                            </button>
+                        </form>
+                    ) : (
+                        <div className="text-center" style={{ animation: 'fadeIn 0.5s ease both' }}>
+                            <div className="mx-auto w-16 h-16 rounded-full flex items-center justify-center mb-6" style={{ background: 'rgba(99,102,241,0.15)' }}>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                </svg>
+                            </div>
+                            <h3 className="text-2xl font-black text-white mb-2 tracking-tight">Check your email</h3>
+                            <p className="text-sm font-medium mb-8" style={{ color: 'rgba(255,255,255,0.5)' }}>
+                                We've sent a 6-digit security code to <strong>{form.email}</strong>.
+                            </p>
+
+                            <form onSubmit={handleVerify} className="space-y-6">
+                                <div>
+                                    <label htmlFor="code" className="sr-only">Verification Code</label>
+                                    <input
+                                        id="code"
+                                        type="text"
+                                        maxLength={6}
+                                        required
+                                        value={verificationCode}
+                                        onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                                        className="w-full text-center text-4xl tracking-[0.5em] font-black font-mono px-4 py-6 rounded-2xl outline-none transition-all"
+                                        style={{ background: 'rgba(255,255,255,0.05)', border: '1.5px solid rgba(255,255,255,0.08)', color: 'white' }}
+                                        onFocus={e => e.target.style.borderColor = 'rgba(99,102,241,0.6)'}
+                                        onBlur={e => e.target.style.borderColor = 'rgba(255,255,255,0.08)'}
+                                        placeholder="••••••"
+                                    />
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    disabled={isLoading || verificationCode.length !== 6}
+                                    className="w-full py-4 rounded-2xl font-black text-base text-white transition-all hover:opacity-90 active:scale-[0.98] disabled:opacity-60"
+                                    style={{ background: 'linear-gradient(135deg, #6366f1, #a855f7)', boxShadow: '0 20px 40px -10px rgba(99,102,241,0.5)' }}
+                                >
+                                    <span className="relative z-10 flex items-center justify-center gap-2">
+                                        {isLoading ? 'Verifying...' : 'Verify & Enter →'}
+                                    </span>
+                                </button>
+                            </form>
+                        </div>
+                    )}
                 </div>
             </div>
 

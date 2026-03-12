@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import api from '../../services/api';
 import { BookOpen, Award, TrendingUp, ChevronRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { RadialBarChart, RadialBar, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
+import ProfileSection from './ProfileSection';
 
 const StudentDash = ({ currentView = 'courses' }) => {
     const [enrollments, setEnrollments] = useState([]);
@@ -11,6 +13,7 @@ const StudentDash = ({ currentView = 'courses' }) => {
     const [results, setResults] = useState([]);
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
+    const { user } = useAuth();
 
     useEffect(() => {
         fetchData();
@@ -82,7 +85,7 @@ const StudentDash = ({ currentView = 'courses' }) => {
                     <img src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=1400&q=80" alt="Studying" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/80 via-indigo-900/40 to-transparent flex items-center px-12">
                         <div>
-                            <p className="text-indigo-300 text-xs font-black uppercase tracking-widest mb-2">Your Learning Journey</p>
+                            <p className="text-indigo-300 text-xs font-black uppercase tracking-widest mb-2">Student ID: {user?.userId}</p>
                             <h1 className="text-4xl font-black text-white leading-tight">Welcome back! 👋</h1>
                             <p className="text-indigo-200 font-medium mt-2">You're enrolled in {enrollments.length} course{enrollments.length !== 1 ? 's' : ''}.</p>
                         </div>
@@ -168,18 +171,18 @@ const StudentDash = ({ currentView = 'courses' }) => {
                             return (
                                 <div key={enrollment._id} className="group relative rounded-[2rem] overflow-hidden shadow-lg h-[400px] flex flex-col justify-end transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
                                     <div className="absolute inset-0 w-full h-full bg-slate-200">
-                                        <img 
-                                            src={enrollment.subjectId.thumbnail || 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
-                                            alt={enrollment.subjectId.title} 
+                                        <img
+                                            src={enrollment.subjectId.thumbnail || 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
+                                            alt={enrollment.subjectId.title}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                                         />
                                     </div>
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent"></div>
-                                    
+
                                     <div className="relative z-10 p-8 flex flex-col h-full justify-end">
                                         <div className={`w-12 h-1 ${theme.bg} rounded-full mb-4`}></div>
                                         <h3 className="font-black text-2xl text-white mb-2 leading-tight">{enrollment.subjectId.title}</h3>
-                                        
+
                                         <div className="mt-4 mb-6">
                                             <div className="flex justify-between items-end mb-2">
                                                 <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Progress</span>
@@ -215,14 +218,14 @@ const StudentDash = ({ currentView = 'courses' }) => {
                         {availableSubjects.map(subject => (
                             <div key={subject._id} className="group relative rounded-[2rem] overflow-hidden shadow-lg h-[350px] flex flex-col justify-end transition-all duration-500 hover:shadow-2xl hover:-translate-y-2">
                                 <div className="absolute inset-0 w-full h-full bg-slate-200">
-                                    <img 
-                                        src={subject.thumbnail || 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'} 
-                                        alt={subject.title} 
+                                    <img
+                                        src={subject.thumbnail || 'https://images.unsplash.com/photo-1516321497487-e288fb19713f?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
+                                        alt={subject.title}
                                         className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-[1.15]"
                                     />
                                 </div>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent"></div>
-                                
+
                                 <div className="relative z-10 p-8 flex flex-col h-full justify-end">
                                     <h3 className="font-extrabold text-xl text-white mb-2 line-clamp-2 leading-snug">{subject.title}</h3>
                                     <p className="text-sm text-slate-300 mb-6 line-clamp-2 font-medium bg-black/20 p-2 rounded-lg backdrop-blur-sm border border-white/10">{subject.description}</p>
@@ -383,6 +386,7 @@ const StudentDash = ({ currentView = 'courses' }) => {
     if (currentView === 'courses') return renderCourses();
     if (currentView === 'tests') return renderTests();
     if (currentView === 'progress') return renderProgress();
+    if (currentView === 'profile') return <ProfileSection />;
 
     return renderCourses();
 };

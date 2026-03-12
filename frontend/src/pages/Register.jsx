@@ -11,7 +11,11 @@ const Register = () => {
     const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
-    const { register } = useAuth();
+    // Step 2 Verification state
+    const [step, setStep] = useState(1);
+    const [verificationCode, setVerificationCode] = useState('');
+
+    const { register, verifyEmail } = useAuth();
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
@@ -20,6 +24,20 @@ const Register = () => {
         setError('');
 
         const result = await register(name, email, password, role);
+        if (result.success) {
+            setStep(2);
+        } else {
+            setError(result.message);
+        }
+        setIsLoading(false);
+    };
+
+    const handleVerify = async (e) => {
+        e.preventDefault();
+        setIsLoading(true);
+        setError('');
+
+        const result = await verifyEmail(email, verificationCode);
         if (result.success) {
             navigate('/dashboard');
         } else {
@@ -76,103 +94,156 @@ const Register = () => {
                     </div>
 
                     <div className="glass-panel p-8 sm:p-10 z-20 relative">
-                        <form className="space-y-6" onSubmit={handleSubmit}>
-                            {error && (
-                                <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
-                                    <div className="flex">
-                                        <div className="ml-3">
-                                            <p className="text-sm text-red-700">{error}</p>
+                        {step === 1 ? (
+                            <form className="space-y-6" onSubmit={handleSubmit}>
+                                {error && (
+                                    <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md">
+                                        <div className="flex">
+                                            <div className="ml-3">
+                                                <p className="text-sm text-red-700">{error}</p>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            )}
+                                )}
 
-                            <div>
-                                <label htmlFor="name" className="block text-sm font-semibold text-slate-700">Full Name</label>
-                                <div className="mt-2">
-                                    <input
-                                        id="name"
-                                        name="name"
-                                        type="text"
-                                        required
-                                        value={name}
-                                        onChange={(e) => setName(e.target.value)}
-                                        className="input-field"
-                                        placeholder="John Doe"
-                                    />
+                                <div>
+                                    <label htmlFor="name" className="block text-sm font-semibold text-slate-700">Full Name</label>
+                                    <div className="mt-2">
+                                        <input
+                                            id="name"
+                                            name="name"
+                                            type="text"
+                                            required
+                                            value={name}
+                                            onChange={(e) => setName(e.target.value)}
+                                            className="input-field"
+                                            placeholder="John Doe"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label htmlFor="email" className="block text-sm font-semibold text-slate-700">Email Address</label>
-                                <div className="mt-2">
-                                    <input
-                                        id="email"
-                                        name="email"
-                                        type="email"
-                                        required
-                                        value={email}
-                                        onChange={(e) => setEmail(e.target.value)}
-                                        className="input-field"
-                                        placeholder="you@example.com"
-                                    />
+                                <div>
+                                    <label htmlFor="email" className="block text-sm font-semibold text-slate-700">Email Address</label>
+                                    <div className="mt-2">
+                                        <input
+                                            id="email"
+                                            name="email"
+                                            type="email"
+                                            required
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            className="input-field"
+                                            placeholder="you@example.com"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label htmlFor="password" className="block text-sm font-semibold text-slate-700">Password</label>
-                                <div className="mt-2">
-                                    <input
-                                        id="password"
-                                        name="password"
-                                        type="password"
-                                        required
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="input-field"
-                                        placeholder="••••••••"
-                                    />
+                                <div>
+                                    <label htmlFor="password" className="block text-sm font-semibold text-slate-700">Password</label>
+                                    <div className="mt-2">
+                                        <input
+                                            id="password"
+                                            name="password"
+                                            type="password"
+                                            required
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            className="input-field"
+                                            placeholder="••••••••"
+                                        />
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div>
-                                <label htmlFor="role" className="block text-sm font-semibold text-slate-700">I am a...</label>
-                                <div className="mt-2 relative">
-                                    <select
-                                        id="role"
-                                        name="role"
-                                        value={role}
-                                        onChange={(e) => setRole(e.target.value)}
-                                        className="input-field appearance-none"
+                                <div>
+                                    <label htmlFor="role" className="block text-sm font-semibold text-slate-700">I am a...</label>
+                                    <div className="mt-2 relative">
+                                        <select
+                                            id="role"
+                                            name="role"
+                                            value={role}
+                                            onChange={(e) => setRole(e.target.value)}
+                                            className="input-field appearance-none"
+                                        >
+                                            <option value="STUDENT">Student</option>
+                                            <option value="INSTRUCTOR">Instructor</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div className="pt-2">
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading}
+                                        className="w-full btn-primary py-4 text-lg font-bold shadow-primary-500/40"
                                     >
-                                        <option value="STUDENT">Student</option>
-                                        <option value="INSTRUCTOR">Instructor</option>
-                                    </select>
+                                        {isLoading ? (
+                                            <span className="flex items-center gap-2">
+                                                <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Creating Account...
+                                            </span>
+                                        ) : (
+                                            <span className="flex items-center gap-2">
+                                                <UserPlus size={20} /> Create Account
+                                            </span>
+                                        )}
+                                    </button>
                                 </div>
-                            </div>
+                            </form>
+                        ) : (
+                            <div className="text-center animate-fade-in">
+                                <div className="mx-auto w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mb-6 shadow-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-bold text-slate-900 mb-2">Check your email</h3>
+                                <p className="text-sm font-medium text-slate-600 mb-8">
+                                    We've sent a 6-digit security code to <strong>{email}</strong>.
+                                </p>
 
-                            <div className="pt-2">
-                                <button
-                                    type="submit"
-                                    disabled={isLoading}
-                                    className="w-full btn-primary py-4 text-lg font-bold shadow-primary-500/40"
-                                >
-                                    {isLoading ? (
-                                        <span className="flex items-center gap-2">
-                                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                            </svg>
-                                            Creating Account...
-                                        </span>
-                                    ) : (
-                                        <span className="flex items-center gap-2">
-                                            <UserPlus size={20} /> Create Account
-                                        </span>
+                                <form onSubmit={handleVerify} className="space-y-6">
+                                    {error && (
+                                        <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-md text-left">
+                                            <div className="flex">
+                                                <div className="ml-3">
+                                                    <p className="text-sm text-red-700">{error}</p>
+                                                </div>
+                                            </div>
+                                        </div>
                                     )}
-                                </button>
+
+                                    <div>
+                                        <label htmlFor="code" className="sr-only">Verification Code</label>
+                                        <input
+                                            id="code"
+                                            type="text"
+                                            maxLength={6}
+                                            required
+                                            value={verificationCode}
+                                            onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, ''))}
+                                            className="w-full text-center text-3xl tracking-[0.5em] font-black font-mono px-4 py-4 rounded-xl border-2 border-slate-200 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 bg-white placeholder:text-slate-300 transition-all outline-none"
+                                            placeholder="••••••"
+                                        />
+                                    </div>
+
+                                    <button
+                                        type="submit"
+                                        disabled={isLoading || verificationCode.length !== 6}
+                                        className="btn-primary w-full py-4 text-base font-black uppercase tracking-wider relative overflow-hidden group disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        <span className="relative z-10 flex items-center justify-center gap-2">
+                                            {isLoading ? 'Verifying...' : 'Verify & Enter'}
+                                            {!isLoading && (
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                                            )}
+                                        </span>
+                                    </button>
+                                </form>
                             </div>
-                        </form>
+                        )}
                     </div>
                 </div>
             </div>

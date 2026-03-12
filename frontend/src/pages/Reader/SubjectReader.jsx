@@ -257,6 +257,30 @@ const SubjectReader = () => {
                                                 </div>
                                             );
                                         }
+                                        if (para.trim().startsWith('[PDF]')) {
+                                            const pdfPath = para.replace('[PDF]', '').trim();
+                                            const baseUrl = import.meta.env.VITE_API_URL ? import.meta.env.VITE_API_URL.replace('/api', '') : 'http://localhost:5000';
+                                            const fullPdfUrl = `${baseUrl}${pdfPath}`;
+                                            return (
+                                                <div key={i} className="my-12 animate-fade-in-up">
+                                                    <div className="flex flex-col rounded-[2rem] overflow-hidden shadow-[0_20px_50px_-12px_rgba(0,0,0,0.15)] bg-slate-100 border border-slate-200">
+                                                        <div className="flex justify-between items-center bg-slate-900 text-white px-6 py-4">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
+                                                                    <Book size={16} />
+                                                                </div>
+                                                                <span className="font-bold tracking-widest uppercase text-xs">PDF Document</span>
+                                                            </div>
+                                                            <a href={fullPdfUrl} download target="_blank" rel="noopener noreferrer" className="bg-indigo-500 hover:bg-indigo-400 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition-colors shadow-lg shadow-indigo-500/30">
+                                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                                                                Download
+                                                            </a>
+                                                        </div>
+                                                        <iframe src={fullPdfUrl} className="w-full h-[700px] border-none bg-slate-50" title="PDF Document" />
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
                                         return (
                                             <div key={i} className="mb-8">
                                                 <MathJaxRenderer content={para} />

@@ -79,14 +79,16 @@ const createSubject = async (req, res) => {
 // @route   PUT /api/subjects/:id
 // @access  Private/Instructor
 const updateSubject = async (req, res) => {
+    console.log(`\n\n[API UPDATE SUBJECT] Received request for ID: ${req.params.id}`);
     try {
         const { title, description, units, thumbnail } = req.body;
+        console.log(`[API UPDATE SUBJECT] Units provided: ${units ? units.length : 0}`);
 
         const subject = await Subject.findByPk(req.params.id);
 
         if (subject) {
             // Check if user is the instructor of this subject or an admin
-            if (subject.instructorId !== req.user.id && req.user.role !== 'ADMIN') {
+            if (String(subject.instructorId) !== String(req.user.id) && req.user.role !== 'ADMIN') {
                 return res.status(401).json({ message: 'Not authorized to update this subject' });
             }
 
@@ -104,7 +106,13 @@ const updateSubject = async (req, res) => {
             res.status(404).json({ message: 'Subject not found' });
         }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('------- SUBJECT UPDATE ERROR -------');
+        console.error(error);
+        if (error.errors) {
+            error.errors.forEach(e => console.error('Validation Error:', e.message));
+        }
+        console.error('------------------------------------');
+        res.status(500).json({ message: error.message, details: error.errors });
     }
 };
 
@@ -116,7 +124,7 @@ const deleteSubject = async (req, res) => {
         const subject = await Subject.findByPk(req.params.id);
 
         if (subject) {
-            if (subject.instructorId !== req.user.id && req.user.role !== 'ADMIN') {
+            if (String(subject.instructorId) !== String(req.user.id) && req.user.role !== 'ADMIN') {
                 return res.status(401).json({ message: 'Not authorized to delete this subject' });
             }
 

@@ -9,6 +9,7 @@ const { connectDB, sequelize } = require('./config/db');
 const { User, Subject, Quiz } = require('./models');
 
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const subjectRoutes = require('./routes/subjectRoutes');
 const enrollmentRoutes = require('./routes/enrollmentRoutes');
@@ -17,12 +18,17 @@ const resultRoutes = require('./routes/resultRoutes');
 const flagRoutes = require('./routes/flagRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const analyticsRoutes = require('./routes/analyticsRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
+const path = require('path');
 
 const app = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the public directory (for uploaded PDFs etc)
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Basic Route
 app.get('/', (req, res) => {
@@ -46,6 +52,7 @@ app.get('/api/stats', async (req, res) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/subjects', subjectRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
@@ -54,17 +61,16 @@ app.use('/api/results', resultRoutes);
 app.use('/api/flags', flagRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/analytics', analyticsRoutes);
+app.use('/api/upload', uploadRoutes);
 
 const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
     await connectDB();
-    await sequelize.sync(); // Tables already created
+    await sequelize.sync({ alter: true }); // Updates schema to match changes
     console.log('All tables synced');
 
-    if (process.env.NODE_ENV !== 'production') {
-        app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-    }
+    app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 };
 
 startServer();

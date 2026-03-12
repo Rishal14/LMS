@@ -4,6 +4,7 @@ import {
     AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
     XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
 } from 'recharts';
+import ProfileSection from './ProfileSection';
 
 const PINTEREST_IMAGES = [
     'https://images.unsplash.com/photo-1524178232363-1fb2b075b655?w=800&q=80',
@@ -16,18 +17,21 @@ const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 const AdminDash = ({ currentView = 'overview' }) => {
     const [users, setUsers] = useState([]);
     const [rankings, setRankings] = useState([]);
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => { fetchData(); }, []);
 
     const fetchData = async () => {
         try {
-            const [usersRes, ranksRes] = await Promise.all([
+            const [usersRes, ranksRes, actRes] = await Promise.all([
                 api.get('/admin/users'),
-                api.get('/analytics/college-rankings')
+                api.get('/analytics/college-rankings'),
+                api.get('/admin/activity')
             ]);
             setUsers(usersRes.data);
             setRankings(ranksRes.data);
+            setActivities(actRes.data);
         } catch (error) {
             console.error('Failed to fetch users', error);
         } finally {
@@ -37,9 +41,23 @@ const AdminDash = ({ currentView = 'overview' }) => {
 
     const toggleStatus = async (id) => {
         try {
-            await api.put(`/admin/users/${id}/status`);
-            fetchData();
-        } catch (error) { console.error('Failed to toggle status', error); }
+            const { data } = await api.put(`/admin/users/${id}/status`);
+            setUsers(users.map(u => (u._id === id ? data : u)));
+        } catch (error) {
+            console.error('Failed to toggle status', error);
+        }
+    };
+
+    const deleteUser = async (id) => {
+        if (window.confirm("Are you sure you want to permanently delete this user? All their data will be lost.")) {
+            try {
+                await api.delete(`/admin/users/${id}`);
+                setUsers(users.filter(u => u._id !== id));
+            } catch (error) {
+                console.error('Failed to delete user', error);
+                alert(error.response?.data?.message || 'Failed to delete user');
+            }
+        }
     };
 
     const updateRole = async (id, newRole) => {
@@ -47,6 +65,15 @@ const AdminDash = ({ currentView = 'overview' }) => {
             await api.put(`/admin/users/${id}/role`, { role: newRole });
             fetchData();
         } catch (error) { console.error('Failed to update role', error); }
+    };
+
+    const manualVerify = async (id) => {
+        try {
+            const { data } = await api.put(`/admin/users/${id}/verify`);
+            setUsers(users.map(u => (u._id === id ? data : u)));
+        } catch (error) {
+            console.error('Failed to manually verify user', error);
+        }
     };
 
     if (loading) return (
@@ -111,20 +138,26 @@ const AdminDash = ({ currentView = 'overview' }) => {
                                             <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white text-sm font-extrabold shadow-sm">
                                                 {u.name?.charAt(0)?.toUpperCase()}
                                             </div>
-                                            <span className="text-sm font-bold text-slate-800">{u.name}</span>
+                                            <div className="flex flex-col">
+                                                <span className="text-sm font-bold text-slate-800">{u.name}</span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 mt-0.5">{u.userId || 'N/A'}</span>
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-medium">{u.email}</td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <select
-                                            value={u.role}
-                                            onChange={(e) => updateRole(u._id, e.target.value)}
-                                            className="text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-400 outline-none cursor-pointer"
-                                        >
-                                            <option value="STUDENT">Student</option>
-                                            <option value="INSTRUCTOR">Instructor</option>
-                                            <option value="ADMIN">Admin</option>
-                                        </select>
+                                        {u.role === 'ADMIN' ? (
+                                            <span className="text-xs font-black text-indigo-500 px-3 py-2 bg-indigo-50 rounded-xl">System Admin</span>
+                                        ) : (
+                                            <select
+                                                value={u.role}
+                                                onChange={(e) => updateRole(u._id, e.target.value)}
+                                                className="text-xs font-bold px-3 py-2 rounded-xl border border-slate-200 bg-white focus:ring-2 focus:ring-indigo-400 outline-none cursor-pointer"
+                                            >
+                                                <option value="STUDENT">Student</option>
+                                                <option value="INSTRUCTOR">Instructor</option>
+                                            </select>
+                                        )}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
                                         <span className={`px-3 py-1.5 text-xs font-black rounded-xl ${u.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
@@ -132,9 +165,69 @@ const AdminDash = ({ currentView = 'overview' }) => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap">
-                                        <button onClick={() => toggleStatus(u._id)} className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${u.status === 'ACTIVE' ? 'text-red-500 bg-red-50 hover:bg-red-100 hover:shadow-md' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:shadow-md'}`}>
-                                            {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
-                                        </button>
+                                        {u.role === 'ADMIN' ? (
+                                            <span className="text-xs font-bold px-4 py-2 text-slate-400">Protected</span>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                {!u.isVerified && (
+                                                    <button onClick={() => manualVerify(u._id)} className="text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-md">
+                                                        Verify
+                                                    </button>
+                                                )}
+                                                <button onClick={() => toggleStatus(u._id)} className={`text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm ${u.status === 'ACTIVE' ? 'text-red-500 bg-red-50 hover:bg-red-100 hover:shadow-md' : 'text-emerald-600 bg-emerald-50 hover:bg-emerald-100 hover:shadow-md'}`}>
+                                                    {u.status === 'ACTIVE' ? 'Deactivate' : 'Activate'}
+                                                </button>
+                                                <button onClick={() => deleteUser(u._id)} className="text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm text-red-600 border border-red-200 hover:bg-red-600 hover:text-white hover:shadow-md">
+                                                    Delete
+                                                </button>
+                                            </div>
+                                        )}
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    );
+
+    if (currentView === 'profile') return <ProfileSection />;
+
+    // --- Activity Logs Table ---
+    if (currentView === 'activity') return (
+        <div className="space-y-6 animate-fade-in-up">
+            <h2 className="text-3xl font-black text-slate-900">Student Activity Logs</h2>
+            <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-slate-100">
+                        <thead className="bg-gradient-to-r from-slate-50 to-slate-100">
+                            <tr>
+                                {['Student', 'Role', 'Login Time', 'Logout Time', 'Duration'].map(h => (
+                                    <th key={h} className="px-6 py-4 text-left text-xs font-black text-slate-400 uppercase tracking-widest">{h}</th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-slate-50">
+                            {activities.map((act) => (
+                                <tr key={act.id} className="hover:bg-indigo-50/30 transition-colors">
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-400 to-purple-600 flex items-center justify-center text-white text-sm font-extrabold shadow-sm">
+                                                {act.user ? act.user.name.charAt(0).toUpperCase() : '?'}
+                                            </div>
+                                            <span className={`text-sm font-bold ${act.user ? 'text-slate-800' : 'text-slate-400 italic'}`}>
+                                                {act.user ? act.user.name : 'Deleted User'}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-400 font-medium">
+                                        {act.user ? act.user.role : 'Unknown'}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">{new Date(act.loginTime).toLocaleString()}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-semibold">{act.logoutTime ? new Date(act.logoutTime).toLocaleString() : <span className="text-emerald-500">Active</span>}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                        <span className="font-bold text-sm text-indigo-700">{act.durationSeconds ? `${Math.floor(act.durationSeconds / 60)}m ${act.durationSeconds % 60}s` : '-'}</span>
                                     </td>
                                 </tr>
                             ))}

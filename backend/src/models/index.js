@@ -5,12 +5,17 @@ const Result = require('./Result');
 const Enrollment = require('./Enrollment');
 const Flag = require('./Flag');
 const Counter = require('./Counter');
+const ActivityLog = require('./ActivityLog');
 
 // --- Associations ---
 
 // Subject belongs to an instructor (User)
 Subject.belongsTo(User, { foreignKey: 'instructorId', as: 'instructor' });
 User.hasMany(Subject, { foreignKey: 'instructorId' });
+
+// ActivityLog belongs to User
+ActivityLog.belongsTo(User, { foreignKey: 'userId', as: 'user' });
+User.hasMany(ActivityLog, { foreignKey: 'userId' });
 
 // Quiz belongs to Subject and User (creator)
 Quiz.belongsTo(Subject, { foreignKey: 'subjectId', as: 'subject' });
@@ -35,4 +40,4 @@ Flag.belongsTo(Quiz, { foreignKey: 'quizId', as: 'quiz' });
 User.hasMany(Flag, { foreignKey: 'studentId' });
 Quiz.hasMany(Flag, { foreignKey: 'quizId' });
 
-module.exports = { User, Subject, Quiz, Result, Enrollment, Flag, Counter };
+module.exports = { User, Subject, Quiz, Result, Enrollment, Flag, Counter, ActivityLog };

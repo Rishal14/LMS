@@ -13,7 +13,7 @@ import SubjectReader from './pages/Reader/SubjectReader';
 import QuizTaker from './pages/Assessment/QuizTaker';
 import ResultsViewer from './pages/Assessment/ResultsViewer';
 
-import { LogOut, Sun, Moon, Monitor } from 'lucide-react';
+import { LogOut, Sun, Moon, Monitor, User as UserIcon, Settings, ChevronDown } from 'lucide-react';
 
 const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useAuth();
@@ -25,7 +25,7 @@ const ProtectedRoute = ({ children, allowedRoles }) => {
 
 const ThemeToggle = () => {
   // theme: 'light' | 'dark' | 'system'
-  const [theme, setTheme] = React.useState('system');
+  const [theme, setTheme] = React.useState('light');
 
   const applyTheme = (themeValue) => {
     if (themeValue === 'system') {
@@ -38,7 +38,7 @@ const ThemeToggle = () => {
 
   React.useEffect(() => {
     const saved = localStorage.getItem('theme');
-    const initial = saved || 'system';
+    const initial = saved || 'light';
     setTheme(initial);
     applyTheme(initial);
   }, []);
@@ -77,6 +77,7 @@ const ThemeToggle = () => {
 // New Layout Component for Dashboards (Matches User Image)
 const DashboardLayout = ({ defaultView = 'dashboard', renderContent }) => {
   const [activeView, setActiveView] = useState(defaultView);
+  const [showUserMenu, setShowUserMenu] = useState(false);
   const { user, logout } = useAuth();
 
   if (!user) return <Navigate to="/login" replace />;
@@ -101,8 +102,8 @@ const DashboardLayout = ({ defaultView = 'dashboard', renderContent }) => {
           {/* Admin Links */}
           {isAdmin && (
             <>
-              {['overview', 'all-users', 'students', 'instructors', 'rankings', 'statistics'].map((view) => {
-                const labels = { 'overview': 'Overview', 'all-users': 'All Users', 'students': 'Students', 'instructors': 'Instructors', 'rankings': 'Rankings', 'statistics': 'Statistics' };
+              {['overview', 'all-users', 'students', 'instructors', 'rankings', 'statistics', 'activity'].map((view) => {
+                const labels = { 'overview': 'Overview', 'all-users': 'All Users', 'students': 'Students', 'instructors': 'Instructors', 'rankings': 'Rankings', 'statistics': 'Statistics', 'activity': 'Activity Logs' };
                 return (
                   <button
                     key={view}
@@ -148,12 +149,7 @@ const DashboardLayout = ({ defaultView = 'dashboard', renderContent }) => {
         </nav>
 
         <div className="p-6 mt-auto">
-          <button
-            onClick={() => { localStorage.removeItem('userInfo'); window.location.href = '/'; }}
-            className="flex items-center justify-center gap-2 px-6 py-4 w-full text-sm font-bold bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 hover:text-black dark:hover:text-white rounded-2xl transition-all shadow-sm border border-slate-200/50 dark:border-slate-700"
-          >
-            Sign Out
-          </button>
+          {/* Sidebar footer logic removed as Logout is now strictly in the top nav */}
         </div>
       </aside>
 
@@ -167,29 +163,59 @@ const DashboardLayout = ({ defaultView = 'dashboard', renderContent }) => {
               <span className="text-slate-400">LMS Admin <span className="text-slate-300 dark:text-slate-600 mx-1">/</span> Sprint 1</span>
             ) : (
               <h1 className="text-xl font-bold text-slate-800 dark:text-white capitalize tracking-tight">
-                {activeView === 'dashboard' ? (user.role === 'INSTRUCTOR' ? 'Instructor Dashboard' : 'Dashboard') : activeView === 'courses' ? 'My Courses' : activeView === 'tests' ? 'Assessments' : activeView === 'progress' ? 'Analytics' : 'Dashboard'}
+                {activeView === 'dashboard' ? (user.role === 'INSTRUCTOR' ? 'Instructor Dashboard' : 'Dashboard') : activeView === 'courses' ? 'My Courses' : activeView === 'tests' ? 'Assessments' : activeView === 'progress' ? 'Analytics' : activeView === 'profile' ? 'My Profile' : 'Dashboard'}
               </h1>
             )}
           </div>
 
           <div className="flex items-center gap-4">
             <ThemeToggle />
-            {isAdmin ? (
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center text-xs font-bold border border-orange-200">
+
+            {/* User Dropdown */}
+            <div className="relative">
+              <button
+                onClick={() => setShowUserMenu(!showUserMenu)}
+                className="flex items-center gap-3 p-1.5 pr-4 rounded-full bg-slate-50 hover:bg-slate-100 border border-slate-200 transition-colors"
+              >
+                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-xs font-bold text-white shadow-sm">
                   {user.name.substring(0, 2).toUpperCase()}
                 </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-4">
-                <span className="text-sm text-slate-500 dark:text-slate-400">
-                  Welcome, <span className="text-primary-700 dark:text-primary-400 font-bold">{user.name}</span>
-                </span>
-                <button onClick={() => { localStorage.removeItem('userInfo'); window.location.href = '/'; }} className="btn-secondary text-sm px-4 py-1.5 shadow-none rounded">
-                  Logout
-                </button>
-              </div>
-            )}
+                <span className="text-sm font-bold text-slate-700">{user.name}</span>
+                <ChevronDown size={14} className={`text-slate-400 transition-transform ${showUserMenu ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {showUserMenu && (
+                <>
+                  <div className="fixed inset-0 z-10" onClick={() => setShowUserMenu(false)}></div>
+                  <div className="absolute right-0 mt-3 w-56 bg-white rounded-2xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden z-20 animate-fade-in-up origin-top-right">
+                    <div className="p-4 border-b border-slate-50 bg-slate-50/50">
+                      <p className="text-sm font-bold text-slate-800 truncate">{user.name}</p>
+                      <p className="text-xs font-medium text-slate-500 truncate">{user.email}</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-indigo-500 mt-1.5 bg-indigo-50 inline-block px-2 py-0.5 rounded-md">ID: {user.userId || 'N/A'}</p>
+                    </div>
+
+                    <div className="p-2 space-y-1">
+                      <button
+                        onClick={() => { setActiveView('profile'); setShowUserMenu(false); }}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-indigo-50 hover:text-indigo-700 rounded-xl transition-colors"
+                      >
+                        <UserIcon size={16} />
+                        My Profile
+                      </button>
+
+                      <button
+                        onClick={logout}
+                        className="w-full flex items-center gap-3 px-3 py-2 text-sm font-semibold text-red-600 hover:bg-red-50 rounded-xl transition-colors"
+                      >
+                        <LogOut size={16} />
+                        Sign Out
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
           </div>
         </header>
 
@@ -231,7 +257,8 @@ function AppContent() {
     location.pathname.startsWith('/quiz') ||
     location.pathname.startsWith('/results') ||
     location.pathname.startsWith('/admin-dashboard') ||
-    location.pathname.startsWith('/instructor-dashboard');
+    location.pathname.startsWith('/instructor-dashboard') ||
+    location.pathname.startsWith('/instructor');
 
   const hideNav = isDashboardRoute || isAuthRoute;
 
