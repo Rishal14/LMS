@@ -17,6 +17,7 @@ const DEMO_USERS = [
     { label: '🎓 Student', email: 'student@lms.com', color: 'from-indigo-500 to-violet-600' },
     { label: '👨‍🏫 Instructor', email: 'instructor@lms.com', color: 'from-emerald-500 to-teal-600' },
     { label: '⚙️ Admin', email: 'admin@lms.com', color: 'from-amber-500 to-orange-600' },
+    { label: '🖥️ IT Admin', email: 'itadmin@lms.com', color: 'from-rose-500 to-pink-600' },
 ];
 
 const Login = () => {
@@ -137,11 +138,11 @@ const Login = () => {
                             <p className="text-xs font-black uppercase tracking-widest text-white/50">Quick Demo Login</p>
                             <span className="text-[10px] bg-white/10 px-2 py-1 rounded text-white/50 font-mono">Pass: password123</span>
                         </div>
-                        <div className="grid grid-cols-3 gap-2">
+                        <div className="grid grid-cols-2 gap-2">
                             {DEMO_USERS.map(u => (
                                 <button key={u.label} onClick={() => fillDemo(u.email)}
-                                    className={`py-2.5 rounded-xl text-xs font-black text-white transition-all hover:scale-105 active:scale-95`}
-                                    style={{ background: `linear-gradient(135deg, ${u.color.includes('indigo') ? '#6366f1,#7c3aed' : u.color.includes('emerald') ? '#10b981,#0d9488' : '#f59e0b,#ea580c'})` }}>
+                                    className="py-2.5 rounded-xl text-xs font-black text-white transition-all hover:scale-105 active:scale-95"
+                                    style={{ background: `linear-gradient(135deg, ${u.color.includes('indigo') ? '#6366f1,#7c3aed' : u.color.includes('emerald') ? '#10b981,#0d9488' : u.color.includes('rose') ? '#f43f5e,#db2777' : '#f59e0b,#ea580c'})` }}>
                                     {u.label}
                                 </button>
                             ))}

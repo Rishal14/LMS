@@ -56,17 +56,17 @@ const ITAdminDash = ({ currentView = 'glitches' }) => {
     return (
         <div className="space-y-8 animate-fade-in-up">
             {/* Hero Banner */}
-            <div className="relative rounded-[2.5rem] overflow-hidden h-40 lg:h-56 group shadow-2xl transition-colors duration-300 bg-gradient-to-r from-slate-900 to-slate-800">
-                <div className="absolute inset-0 bg-grid-pattern opacity-10"></div>
+            <div className="relative rounded-[2.5rem] overflow-hidden h-40 lg:h-56 group shadow-xl transition-colors duration-300 bg-white dark:bg-gradient-to-r dark:from-slate-900 dark:to-slate-800 border border-slate-200 dark:border-white/5">
+                <div className="absolute inset-0 bg-grid-pattern opacity-[0.03] dark:opacity-10"></div>
                 <div className="absolute inset-0 flex items-center px-8 lg:px-16">
                     <div className="max-w-2xl relative z-10">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-4 backdrop-blur-md">
+                        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 mb-4 backdrop-blur-md shadow-sm">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">System Monitoring Active</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400">System Monitoring Active</span>
                         </div>
-                        <h1 className="text-3xl lg:text-5xl font-black text-white mt-1 leading-tight uppercase tracking-tighter">
+                        <h1 className="text-3xl lg:text-5xl font-black text-slate-900 dark:text-white mt-1 leading-tight uppercase tracking-tighter">
                             IT Operations <br />
-                            <span className="text-emerald-400">Command Center</span>
+                            <span className="text-indigo-600 dark:text-emerald-400">Command Center</span>
                         </h1>
                     </div>
                 </div>
@@ -75,16 +75,51 @@ const ITAdminDash = ({ currentView = 'glitches' }) => {
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                 {[
-                    { label: 'Pending Issues', value: pendingCount, gradient: 'from-rose-500 to-rose-700', icon: <AlertTriangle size={24} className="text-white" /> },
-                    { label: 'In Progress', value: inProgressCount, gradient: 'from-amber-400 to-amber-600', icon: <Clock size={24} className="text-white" /> },
-                    { label: 'Resolved Tickets', value: resolvedCount, gradient: 'from-emerald-500 to-emerald-700', icon: <CheckCircle size={24} className="text-white" /> },
-                ].map((s, i) => (
-                    <div key={i} className={`relative bg-gradient-to-br ${s.gradient} p-8 rounded-[2.5rem] shadow-2xl text-white overflow-hidden hover:-translate-y-2 transition-all duration-300 border border-white/10 group`}>
-                        <div className="mb-4 group-hover:scale-125 transition-transform origin-left">{s.icon}</div>
-                        <p className="text-4xl lg:text-5xl font-black tracking-tighter mb-1">{s.value}</p>
-                        <p className="text-[10px] text-white/70 font-black uppercase tracking-widest mt-1">{s.label}</p>
-                    </div>
-                ))}
+                    { 
+                        label: 'Pending Issues', value: pendingCount, 
+                        bgLight: 'bg-white', bgDark: 'dark:bg-white/5',
+                        borderLight: 'border-rose-100', borderDark: 'dark:border-white/10',
+                        glowLight: 'bg-rose-500/10', glowDark: 'dark:bg-rose-500/20',
+                        iconBgLight: 'bg-rose-50', iconBgDark: 'dark:bg-rose-500/10',
+                        iconBorderLight: 'border-rose-100', iconBorderDark: 'dark:border-rose-500/20',
+                        textColor: 'text-rose-600', textDarkColor: 'dark:text-rose-400',
+                        icon: AlertTriangle 
+                    },
+                    { 
+                        label: 'In Progress', value: inProgressCount, 
+                        bgLight: 'bg-white', bgDark: 'dark:bg-white/5',
+                        borderLight: 'border-amber-200', borderDark: 'dark:border-white/10',
+                        glowLight: 'bg-amber-500/10', glowDark: 'dark:bg-amber-500/20',
+                        iconBgLight: 'bg-amber-50', iconBgDark: 'dark:bg-amber-500/10',
+                        iconBorderLight: 'border-amber-200', iconBorderDark: 'dark:border-amber-500/20',
+                        textColor: 'text-amber-600', textDarkColor: 'dark:text-amber-400',
+                        icon: Clock 
+                    },
+                    { 
+                        label: 'Resolved Tickets', value: resolvedCount, 
+                        bgLight: 'bg-white', bgDark: 'dark:bg-white/5',
+                        borderLight: 'border-emerald-100', borderDark: 'dark:border-white/10',
+                        glowLight: 'bg-emerald-500/10', glowDark: 'dark:bg-emerald-500/20',
+                        iconBgLight: 'bg-emerald-50', iconBgDark: 'dark:bg-emerald-500/10',
+                        iconBorderLight: 'border-emerald-100', iconBorderDark: 'dark:border-emerald-500/20',
+                        textColor: 'text-emerald-600', textDarkColor: 'dark:text-emerald-400',
+                        icon: CheckCircle 
+                    },
+                ].map((s, i) => {
+                    const Icon = s.icon;
+                    return (
+                        <div key={i} className={`relative ${s.bgLight} ${s.bgDark} p-8 rounded-[2.5rem] shadow-xl border ${s.borderLight} ${s.borderDark} overflow-hidden hover:-translate-y-2 transition-all duration-300 group`}>
+                            {/* Decorative background glow */}
+                            <div className={`absolute -right-10 -top-10 w-40 h-40 ${s.glowLight} ${s.glowDark} rounded-full blur-3xl group-hover:scale-150 transition-transform duration-500`}></div>
+                            
+                            <div className={`w-12 h-12 rounded-2xl ${s.iconBgLight} ${s.iconBgDark} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform origin-left border ${s.iconBorderLight} ${s.iconBorderDark}`}>
+                                <Icon size={24} className={`${s.textColor} ${s.textDarkColor}`} />
+                            </div>
+                            <p className="text-4xl lg:text-5xl font-black tracking-tighter mb-1 text-slate-900 dark:text-white relative z-10">{s.value}</p>
+                            <p className={`text-[10px] font-black uppercase tracking-widest mt-1 ${s.textColor} ${s.textDarkColor} relative z-10`}>{s.label}</p>
+                        </div>
+                    );
+                })}
             </div>
 
             <div className="bg-white dark:bg-surface-850 rounded-[2.5rem] shadow-2xl border border-slate-100 dark:border-white/5 overflow-hidden transition-colors duration-300">
